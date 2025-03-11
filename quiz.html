@@ -8,10 +8,11 @@
 <body>
     <script>
         class Question {
-            constructor(text, choices, correctAns){
+            constructor(text, choices, correctAns, difficulty){
                 this.text = text;
                 this.choices = choices;
                 this.correctAns = correctAns;
+		this.difficulty = difficulty;
             }
             
             isCorrectAns(choice){
@@ -40,13 +41,17 @@
           
             constructor(user){ 
                 this.user = user;
-                this.allQues = [];     //----- assuming we use an array to hold all the questions
+                this.allQues = null //----- assuming we use an array to hold all the questions
                 this.quesIndex = -1;
                 this.score = 0;
+		this.difficultyLvl = 1;
             }
 
-            addQuestion(question) {
-                this.allQues.push(question);
+            addQuestion(questions) {
+		    questions.forEach(function addQ(question) {
+			    this.allQues.push(question);
+		    }, this);
+                //this.allQues.push(question);
             }
 
             getCurrentQuestion() {
@@ -56,6 +61,7 @@
             isCorrectAnswer(choice){
                 const currentQues = this.getCurrentQuestion()
                 if (currentQues.isCorrectAns(choice)){      //------- would it help for those working on other parts to have the score incremented in here?
+		    //incrementScore();
                     return true;
                 } else {
                     return false;
@@ -80,10 +86,40 @@
                 */
                 return this.quesIndex < this.allQues.length -1;
             }
+		setDifficulty(level) {
+			this.difficultyLvl = level; 
+		}
+
+		increaseDifficulty() {
+			this.difficultyLvl = ((this.difficultLvl) % n) + 1;
+		}
+			
+		decreaseDifficulty() {
+			this.difficultyLvl = ((this.difficultLvl -2) % n) + 1;
+		}
 
            //deleting moveToNextQuestion() function, the logic is in the generator function 
           
-             
+	async fetchQuestions() {
+		try {
+			const response = await fetch('https://opentdb.com/api.php?amount=10');
+			const data = await response.json();
+
+			if (data.response_code === 0) {
+				const results = data.results;
+				const questions = results.map((result) => {
+					const choices = result.incorrect_answers.push(result.answer);
+					return new Question(result.question, choices, result.correct_answer, result.difficulty);
+				});
+				this.allQues = questions;
+			} else {
+				console.warn('No questions were fetched');
+			}
+		} catch (error) {
+			console.error('Error fetching questions:',error);
+			throw error;
+		}
+	}
 
         //manage flow of quiz questions
             *generateQuestions()
@@ -98,6 +134,7 @@
                    //increase quiz score if correct answer
                    if(currentQues.isCorrectAns(userAnswer)){
                     this.incrementScore();
+		this.increaseDifficulty();
                     console.log("Correct Answer!")
                    }
 
