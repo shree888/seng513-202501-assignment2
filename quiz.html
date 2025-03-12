@@ -77,6 +77,8 @@
                 this.score = 0;
                 this.quizIterator = null;
                 this.difficultyLvl = 1;
+                this.numIncorrect = 0;
+                this.numCorrect = 0;
             }
             
             addQuestion(questions) {
@@ -111,7 +113,7 @@
                 /*
                 Checks whether there are any more questions left in the quiz
                 */
-                return this.quesIndex < this.allQues.length - 1;
+                return this.allQues.length > 0;
             }
             
             setDifficulty(level) {
@@ -119,10 +121,12 @@
             }
 
             increaseDifficulty() {
+                let n = 5;
                 this.difficultyLvl = ((this.difficultyLvl) % n) + 1;
             }
                 
             decreaseDifficulty() {
+                let n = 5;
                 this.difficultyLvl = ((this.difficultyLvl -2) % n) + 1;
             }
             
@@ -143,20 +147,48 @@
                 const result = this.quizIterator.next(answer);
                 return result;
             }
+
+            nextQuesIndex(){
+                let index = this.allQues.findIndex(question => question.difficulty === this.difficultyLvl);
+
+                if (index === -1) {
+                    if (this.this.difficultyLvl > 1){
+                        this.difficultyLvl -= 1;
+                    } else {
+                        this.difficultyLvl += 1;
+                    }
+                    index = this.nextQuesIndex();
+                }
+                
+                return index;
+            }
+
+            removeQues(){
+                let currQues = this.getCurrentQuestion();
+                this.allQues = this.allQues.filter(question => question !== currQues);
+            }
             
             // Manage flow of quiz questions
             *generateQuestions() {
                 while (this.areQuesLeft()) {
-                    this.quesIndex++;
+                    this.quesIndex = this.nextQuesIndex()
                     let currentQuestion = this.allQues[this.quesIndex];
                     let userAnswer = yield currentQuestion; // yield question and wait for answer
                     
                     // Increase quiz score if correct answer
                     if (this.isCorrectAnswer(userAnswer)) {
                         this.incrementScore();
-                        this.increaseDifficulty();
+                        if (this.numCorrect >= 2) {
+                            this.increaseDifficulty();
+                            this.numCorrect = 0;
+                        }
                         yield true; // yield true for correct answer
                     } else {
+                        // Decrease difficulty if needed
+                        if (this.numIncorrect >= 2) {
+                            this.decreaseDifficulty();
+                            this.numIncorrect = 0;
+                        }
                         yield false; // yield false for incorrect answer
                     }
                 }
@@ -182,7 +214,7 @@
                         const results = data.results;
                         const questions = results.map((result) => {
                             const choices = [...result.incorrect_answers, result.correct_answer];
-                            return new Question(result.question, choices, result.correct_answer, result.difficulty);
+                            return new Question(decodeURIComponent(result.question), choices, result.correct_answer, result.difficulty);
                         });
                         this.allQues = questions;
                     } else {
@@ -247,6 +279,8 @@
         
         // Handle user answer
         function handleAnswer(choice) {
+            const currentQuestion = quiz.getCurrentQuestion();  // Corrected line
+
             // Disable all choice buttons
             const choiceButtons = document.querySelectorAll('.choice-btn');
             choiceButtons.forEach(btn => {
@@ -283,6 +317,7 @@
         
         // Move to next question
         function moveToNextQuestion() {
+            quiz.removeQues();      // Remove current question
             const result = quiz.nextQuestion();
             currentQuestion = result.value;
             
