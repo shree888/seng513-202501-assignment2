@@ -77,8 +77,8 @@
                 this.score = 0;
                 this.quizIterator = null;
                 this.difficultyLvl = 1;
-                this.numIncorrect = 0;
-                this.numCorrect = 0;
+                // this.numIncorrect = 0;
+                // this.numCorrect = 0;
             }
             
             addQuestion(questions) {
@@ -121,12 +121,12 @@
             }
 
             increaseDifficulty() {
-                let n = 5;
+                let n = 2;
                 this.difficultyLvl = ((this.difficultyLvl) % n) + 1;
             }
                 
             decreaseDifficulty() {
-                let n = 5;
+                let n = 2;
                 this.difficultyLvl = ((this.difficultyLvl -2) % n) + 1;
             }
             
@@ -146,19 +146,18 @@
             submitAnswer(answer) {
                 const result = this.quizIterator.next(answer);
                 return result;
-            }
+            } 
 
             nextQuesIndex(){
                 let index = this.allQues.findIndex(question => question.difficulty === this.difficultyLvl);
 
+                // If there is no question with the difficulty level
                 if (index === -1) {
-                    if (this.this.difficultyLvl > 1){
-                        this.difficultyLvl -= 1;
-                    } else {
-                        this.difficultyLvl += 1;
-                    }
-                    index = this.nextQuesIndex();
+                    index = this.allQues.length > 0 ? 0 : -1;
+                    this.increaseDifficulty();
                 }
+                console.log(index);
+                // console.log(this.allQues[this.quesIndex].difficulty);
                 
                 return index;
             }
@@ -178,17 +177,19 @@
                     // Increase quiz score if correct answer
                     if (this.isCorrectAnswer(userAnswer)) {
                         this.incrementScore();
-                        if (this.numCorrect >= 2) {
-                            this.increaseDifficulty();
-                            this.numCorrect = 0;
-                        }
+
+                        // // Increase difficulty if needed
+                        // if (this.numCorrect >= 2) {
+                        //     this.increaseDifficulty();
+                        //     this.numCorrect = 0;
+                        // }
                         yield true; // yield true for correct answer
                     } else {
-                        // Decrease difficulty if needed
-                        if (this.numIncorrect >= 2) {
-                            this.decreaseDifficulty();
-                            this.numIncorrect = 0;
-                        }
+                        // // Decrease difficulty if needed
+                        // if (this.numIncorrect >= 2) {
+                        //     this.decreaseDifficulty();
+                        //     this.numIncorrect = 0;
+                        // }
                         yield false; // yield false for incorrect answer
                     }
                 }
@@ -227,6 +228,8 @@
             }
 
         }
+
+
         
         // DOM Elements
         const welcomeScreen = document.getElementById('welcome-screen');
@@ -279,8 +282,6 @@
         
         // Handle user answer
         function handleAnswer(choice) {
-            const currentQuestion = quiz.getCurrentQuestion();  // Corrected line
-
             // Disable all choice buttons
             const choiceButtons = document.querySelectorAll('.choice-btn');
             choiceButtons.forEach(btn => {
@@ -313,11 +314,11 @@
                     resultsScreen.classList.remove('hidden');
                 }, 1500);
             }
+            // quiz.removeQues();      // Remove current question
         }
         
         // Move to next question
         function moveToNextQuestion() {
-            quiz.removeQues();      // Remove current question
             const result = quiz.nextQuestion();
             currentQuestion = result.value;
             
